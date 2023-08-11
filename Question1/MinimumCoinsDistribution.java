@@ -1,5 +1,5 @@
 package Question1;
-
+// b Importing required libraries
 public class MinimumCoinsDistribution {
     public static int minCoins(int[] ratings) {
         int n = ratings.length;

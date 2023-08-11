@@ -1,5 +1,5 @@
 package Question1;
-
+//a.	Minimum Cost of Clothing
 public class MinimumCostOfClothing {
     public static int findMinimumCost(int[][] price) {
         int N = price.length;

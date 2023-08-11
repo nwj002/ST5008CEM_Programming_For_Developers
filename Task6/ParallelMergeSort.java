@@ -1,82 +1,73 @@
 package Task6;
 
 import java.util.Arrays;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.ForkJoinPool;
 
 public class ParallelMergeSort {
-    private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors(); // Use all available cores
 
-    public static void parallelMergeSort(int[] arr) {
-        parallelMergeSort(arr, 0, arr.length - 1, NUM_THREADS);
-    }
+    private static class MergeSortTask extends RecursiveAction {
+        private final int[] array;
+        private final int start;
+        private final int end;
 
-    private static void parallelMergeSort(int[] arr, int left, int right, int numThreads) {
-        if (numThreads <= 1) {
-            // If only one thread, perform sequential merge sort
-            mergeSort(arr, left, right);
-            return;
+        public MergeSortTask(int[] array, int start, int end) {
+            this.array = array;
+            this.start = start;
+            this.end = end;
         }
 
-        // Divide the array into two halves and sort them in parallel using multiple threads
-        int mid = left + (right - left) / 2;
-        Thread leftThread = new Thread(() -> parallelMergeSort(arr, left, mid, numThreads / 2));
-        Thread rightThread = new Thread(() -> parallelMergeSort(arr, mid + 1, right, numThreads / 2));
-        leftThread.start();
-        rightThread.start();
-
-        // Wait for both threads to complete
-        try {
-            leftThread.join();
-            rightThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        // Merge the sorted halves
-        merge(arr, left, mid, right);
-    }
-
-    private static void mergeSort(int[] arr, int left, int right) {
-        if (left < right) {
-            int mid = left + (right - left) / 2;
-            mergeSort(arr, left, mid);
-            mergeSort(arr, mid + 1, right);
-            merge(arr, left, mid, right);
-        }
-    }
-
-    private static void merge(int[] arr, int left, int mid, int right) {
-        int n1 = mid - left + 1;
-        int n2 = right - mid;
-
-        int[] leftArray = new int[n1];
-        int[] rightArray = new int[n2];
-
-        System.arraycopy(arr, left, leftArray, 0, n1);
-        System.arraycopy(arr, mid + 1, rightArray, 0, n2);
-
-        int i = 0, j = 0, k = left;
-        while (i < n1 && j < n2) {
-            if (leftArray[i] <= rightArray[j]) {
-                arr[k++] = leftArray[i++];
-            } else {
-                arr[k++] = rightArray[j++];
+        @Override
+        protected void compute() {
+            if (end - start <= 1) {
+                return;
             }
+
+            int mid = (start + end) / 2;
+
+            MergeSortTask leftTask = new MergeSortTask(array, start, mid);
+            MergeSortTask rightTask = new MergeSortTask(array, mid, end);
+
+            invokeAll(leftTask, rightTask);
+
+            merge(array, start, mid, end);
         }
 
-        while (i < n1) {
-            arr[k++] = leftArray[i++];
-        }
+        private void merge(int[] array, int start, int mid, int end) {
+            int[] merged = new int[end - start];
+            int leftIndex = start;
+            int rightIndex = mid;
+            int mergedIndex = 0;
 
-        while (j < n2) {
-            arr[k++] = rightArray[j++];
+            while (leftIndex < mid && rightIndex < end) {
+                if (array[leftIndex] < array[rightIndex]) {
+                    merged[mergedIndex++] = array[leftIndex++];
+                } else {
+                    merged[mergedIndex++] = array[rightIndex++];
+                }
+            }
+
+            while (leftIndex < mid) {
+                merged[mergedIndex++] = array[leftIndex++];
+            }
+
+            while (rightIndex < end) {
+                merged[mergedIndex++] = array[rightIndex++];
+            }
+
+            System.arraycopy(merged, 0, array, start, merged.length);
         }
+    }
+
+    public static void parallelMergeSort(int[] array) {
+        ForkJoinPool pool = new ForkJoinPool();
+        MergeSortTask task = new MergeSortTask(array, 0, array.length);
+        pool.invoke(task);
     }
 
     public static void main(String[] args) {
-        int[] arr = {6, 4, 3, 2, 8, 5, 1, 7};
-
-        System.out.println("Original Array: " + Arrays.toString(arr));
-        parallelMergeSort(arr);
-        System.out.println("Sorted Array: " + Arrays.toString(arr));
+        int[] inputArray = { 5, 3, 9, 1, 7, 2, 8, 4, 6 };
+        parallelMergeSort(inputArray);
+        System.out.println("Sorted array: " + Arrays.toString(inputArray));
     }
 }

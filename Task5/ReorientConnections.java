@@ -1,45 +1,50 @@
 package Task5;
-
+//b
 import java.util.ArrayList;
 import java.util.List;
 
 public class ReorientConnections {
-    public int minReorientConnections(int n, int[][] connections) {
-        // Create the adjacency list to represent the tree
-        List<Integer>[] graph = new ArrayList[n];
+    public static int minReorder(int n, int[][] connections) {
+        // Creating an adjacency list to represent the graph
+        List<List<Integer>> graph = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            graph[i] = new ArrayList<>();
+            graph.add(new ArrayList<>());
         }
+
+        // Building the graph using connections array
         for (int[] connection : connections) {
-            int ai = connection[0];
-            int bi = connection[1];
-            graph[ai].add(bi);
+            int from = connection[0];
+            int to = connection[1];
+            graph.get(from).add(to); // Adding directed edge from 'from' to 'to'
+            graph.get(to).add(-from); // Adding reversed edge to indicate the need for reordering
         }
 
-        // Perform DFS to count the edges that need to be reversed
-        int[] reversedEdges = new int[1]; // Use an array to store the count as it will be modified within DFS
-        boolean[] visited = new boolean[n];
-        dfs(0, graph, visited, reversedEdges);
-
-        return reversedEdges[0];
+        // Starting depth-first search from node 0 and calculating the number of
+        // reordering changes needed
+        return dfs(graph, 0, new boolean[n]);
     }
 
-    private void dfs(int node, List<Integer>[] graph, boolean[] visited, int[] reversedEdges) {
+    public static int dfs(List<List<Integer>> graph, int node, boolean[] visited) {
         visited[node] = true;
-        for (int neighbor : graph[node]) {
-            if (!visited[neighbor]) {
-                reversedEdges[0]++;
-                dfs(neighbor, graph, visited, reversedEdges);
+        int changes = 0;
+
+        // Iterating through neighbors of the current node
+        for (int neighbor : graph.get(node)) {
+            if (!visited[Math.abs(neighbor)]) {
+                // Counting the edges that need to be reversed
+                changes += neighbor > 0 ? 1 : 0;
+                // Recursively exploring the unvisited neighbors
+                changes += dfs(graph, Math.abs(neighbor), visited);
             }
         }
+
+        return changes;
     }
 
     public static void main(String[] args) {
         int n = 6;
-        int[][] connections = {{0, 1}, {1, 3}, {2, 3}, {4, 0}, {4, 5}};
-
-        ReorientConnections solution = new ReorientConnections();
-        int result = solution.minReorientConnections(n, connections);
-        System.out.println("Minimum edges to be reversed: " + result); // Output: 3
+        int[][] connections = { { 0, 1 }, { 1, 3 }, { 2, 3 }, { 4, 0 }, { 4, 5 } };
+        int output = minReorder(n, connections);
+        System.out.println("Minimum reordering changes needed: " + output); // Expected Output: 3
     }
 }
